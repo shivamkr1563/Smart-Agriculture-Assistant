@@ -236,15 +236,28 @@ def initialize_session_state():
 
 
 def load_model_once():
-    """Load model once and cache in session state"""
+    """Load model once and cache in session state. Auto-train if model doesn't exist."""
     if not st.session_state.model_loaded:
         with st.spinner("🔄 Loading ML model..."):
+            # Try to load existing model
             if model.load_model():
                 st.session_state.model_loaded = True
                 return True
             else:
-                st.error("❌ Failed to load model. Please train it first.")
-                return False
+                # If model doesn't exist, train it automatically
+                with st.spinner("🌳 Model not found. Training AI model from dataset... (This happens only once)"):
+                    try:
+                        accuracy = model.train_model('Crop_recommendation.csv')
+                        if accuracy is not None:
+                            st.session_state.model_loaded = True
+                            st.success(f"✅ Model trained successfully! Accuracy: {accuracy*100:.2f}%")
+                            return True
+                        else:
+                            st.error("❌ Failed to train model. Please check the dataset file.")
+                            return False
+                    except Exception as e:
+                        st.error(f"❌ Error training model: {str(e)}")
+                        return False
     return True
 
 
